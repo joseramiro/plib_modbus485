@@ -54,13 +54,13 @@ uint8_t micra_modbus485_parse_response(Modbus485Device_t* device, uint8_t* rx, u
        (rx[MICRA_E6_MODBUS485_POSITION_MODE] == (MODBUS485_MODE_WRITE_WORD | MODBUS485_MODE_ERROR)))
     {
         // check crc
-        if(check_crc16(rx, rx_len))
+        if(check_crc16(rx, 5))
         {
             device->error = rx[2];
             return MODBUS_ERR_RESPONSE;
         }
         else
-            return MODBUS_ERR_BAD_CRC;
+            return MODBUS_ERR_BAD_CRC_ERROR;
     }
 
     // check mode is write word
@@ -69,12 +69,12 @@ uint8_t micra_modbus485_parse_response(Modbus485Device_t* device, uint8_t* rx, u
         if(rx_len < 8)
             return MODBUS_ERR_BAD_LEN;
         // check crc
-        if(check_crc16(rx, rx_len))
+        if(check_crc16(rx, 8))
         {
             return MODBUS_OK;
         }
         else
-            return MODBUS_ERR_BAD_CRC;
+            return MODBUS_ERR_BAD_CRC_WRITE;
         
     }
     // check mode is read Words
@@ -83,13 +83,13 @@ uint8_t micra_modbus485_parse_response(Modbus485Device_t* device, uint8_t* rx, u
         if(rx_len < (5 + rx[2]))
             return MODBUS_ERR_BAD_LEN;
         // check crc
-        if(check_crc16(rx, rx_len))
+        if(check_crc16(rx, 5 + rx[2]))
         {
             update_struct(device, &rx[3]);
             return MODBUS_OK;
         }
         else
-            return MODBUS_ERR_BAD_CRC;
+            return MODBUS_ERR_BAD_CRC_READ;
     }
     
     return MODBUS_ERR_OTHER;
