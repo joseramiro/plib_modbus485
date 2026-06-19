@@ -6,12 +6,6 @@
 
 typedef enum
 {
-    MICRA_E6_MODBUS485_POSITION_ADDRESS,
-    MICRA_E6_MODBUS485_POSITION_MODE
-}MicraE6Modbus485Positions_t;
-
-typedef enum
-{
     MICRA_MODBUS_REG_INPUT_RANGE,                       // Input MicraModbusIntput_t, Range MicraModbusRange_t
     MICRA_MODBUS_REG_INPUT1_DIG43,                      // Input 1 digits 4 and 3
     MICRA_MODBUS_REG_INPUT1_DIG21,                      // Input 1 digits 2 and 1

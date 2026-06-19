@@ -27,7 +27,7 @@ typedef struct Modbus485Device_t
     uint16_t last_word;
     uint8_t error;
     Modbus485Parser_t parser;
-    uint16_t measure;
+    int16_t measure;
     uint8_t input;
     uint8_t range;
 }Modbus485Device_t;

@@ -1,5 +1,11 @@
 #include "micra_e6_modbus485_protocol.h"
 
+typedef enum
+{
+    MICRA_E6_MODBUS485_POSITION_ADDRESS,
+    MICRA_E6_MODBUS485_POSITION_MODE
+}MicraE6Modbus485Positions_t;
+
 // Static functions
 static uint16_t calculate_crc16(uint8_t* buffer, uint8_t len);
 static uint8_t check_crc16(uint8_t* buffer, uint8_t len);

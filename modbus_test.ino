@@ -4,6 +4,7 @@
 #include <Arduino.h>
 #include "plib_modbus485.h"
 #include "micra_e6_modbus485_protocol.h"
+#include "pce_modbus_ascii_protocol.h"
 
 uint8_t tx_buffer[64];
 uint8_t rx_buffer[64];
@@ -33,7 +34,7 @@ Modbus485Device_t deviceList[] =
       .last_word = 0,
   },
   {
-      .address = 4,
+      .address = 28,
       .last_word = 0,
   }
 };
@@ -65,9 +66,9 @@ void setup()
   deviceList[2].parser.Read_Words = micra_modbus485_generate_read_packet;
   deviceList[2].parser.Parse_Response = micra_modbus485_parse_response;
 
-  //deviceList[3].parser.Write_Words = micra_modbus485_generate_write_packet;
-  //deviceList[3].parser.Read_Words = micra_modbus485_generate_read_packet;
-  //deviceList[3].parser.Parse_Response = micra_modbus485_parse_response;
+  deviceList[3].parser.Write_Words = nullptr;
+  deviceList[3].parser.Read_Words = pce_modbus_ascii_generate_read_packet;
+  deviceList[3].parser.Parse_Response = nullptr;
 }
 
 void loop()
@@ -95,7 +96,7 @@ void loop()
         break;
       
       case '3':
-        g_current_slave_id = 4;
+        g_current_slave_id = 3;
         break;
       
       // send packet (micra)
@@ -117,6 +118,7 @@ void loop()
       
       // send packet (frequency)
       case 'z':
+        sendModbusReadCommand(current_device, PCE_REGISTER_DISPLAY1);
         break;
       
       default:
@@ -129,18 +131,13 @@ void loop()
   {
     rx_buffer[rx_len++] = Serial1.read();
 
-    Serial.print("[len: ");  Serial.print(rx_len);
-
-    Serial.print("]\t[rx buffer: ");
-    for(uint8_t i = 0; i < 20; i++)
-    {
-      Serial.print(rx_buffer[i]);
-      Serial.print(" ");
-    }
-    Serial.println("]");
+    printBuffer(rx_buffer, 20, "RX");
     
+    if(!current_device->parser.Parse_Response)
+      return;
     
     uint8_t res = current_device->parser.Parse_Response(current_device, rx_buffer, rx_len);
+
     if(res == MODBUS_ERR_BAD_LEN)
       return;
 
@@ -189,30 +186,53 @@ void loop()
 
 }
 
+void printBuffer(uint8_t* buffer, uint8_t len, char* name)
+{
+  Serial.print("[len: ");
+  Serial.print(len);
+  Serial.print("]\t[");
+  Serial.print(name);
+  Serial.print(": ");
+  for(uint8_t i = 0; i < len; i++)
+  {
+    Serial.print(buffer[i]);
+    Serial.print(" ");
+  }
+  Serial.println("]");
+}
+
 void sendModbusCommand(uint8_t* data, uint8_t len)
 {
   Serial2.flush();
   setTX();
   Serial2.write(tx_buffer, len);
   setRX();
+  printBuffer(tx_buffer, len, "TX");
 }
 
 void sendModbusReadCommand(Modbus485Device_t* device, uint8_t word)
 {
   // Prepare packet to send
-  uint8_t bytes_to_write = device->parser.Read_Words(device, word, 1, tx_buffer);
-  device->last_word = word;
-  // Transmit packet
-  sendModbusCommand(tx_buffer, bytes_to_write);
+  if(device->parser.Read_Words)
+  {
+    uint8_t bytes_to_write = device->parser.Read_Words(device, word, 1, tx_buffer);
+    device->last_word = word;
+    // Transmit packet
+    sendModbusCommand(tx_buffer, bytes_to_write);
+  }
+  
 }
 
 void sendModbusWriteCommand(Modbus485Device_t* device, uint8_t word, uint8_t* data)
 {
   // Prepare packet to send
-  uint8_t bytes_to_write = device->parser.Write_Words(device, word, 1, data, tx_buffer);
-  device->last_word = word;
-  // Transmit packet
-  sendModbusCommand(tx_buffer, bytes_to_write);
+  if(device->parser.Write_Words)
+  {
+    uint8_t bytes_to_write = device->parser.Write_Words(device, word, 1, data, tx_buffer);
+    device->last_word = word;
+    // Transmit packet
+    sendModbusCommand(tx_buffer, bytes_to_write);
+  }
 }
 
 void clearSerialPort()
