@@ -42,6 +42,8 @@ Modbus485Device_t deviceList[] =
 uint8_t read_input_packet[] = {0x01, 0x03, 0x02, 0x01, 0x00, 0xb9, 0xd4};
 uint8_t read_display_pakt[] = {0x01, 0x03, 0x02, 0x09, 0x60, 0xbe, 0x3c};
 
+uint8_t read_pce_display_packet[] = {2, 37, 32, 60, 32, 32, 32, 40,   43, 48, 55, 54, 53, 46, 52, 51,   53, 3};
+
 void setup()
 {
   // Init hardware
@@ -68,7 +70,7 @@ void setup()
 
   deviceList[3].parser.Write_Words = nullptr;
   deviceList[3].parser.Read_Words = pce_modbus_ascii_generate_read_packet;
-  deviceList[3].parser.Parse_Response = nullptr;
+  deviceList[3].parser.Parse_Response = pce_modbus_ascii_parse_response;
 }
 
 void loop()
@@ -101,14 +103,14 @@ void loop()
       
       // send packet (micra)
       case 'a':
-        current_device->last_word = MICRA_MODBUS_REG_INPUT_RANGE;
-        Serial2.write(read_input_packet, 7);
+        current_device->last_word = MICRA_MODBUS_REG_INPUT_RANGE; // todo: delete after test
+        Serial2.write(read_input_packet, 7);                      // todo: delete after test
         //sendModbusReadCommand(current_device, MICRA_MODBUS_REG_INPUT_RANGE);
         break;
       
       case 'b':
-        current_device->last_word = MICRA_MODBUS_REG_DISPLAY;
-        Serial2.write(read_display_pakt, 7);
+        current_device->last_word = MICRA_MODBUS_REG_DISPLAY;   // todo: delete after test
+        Serial2.write(read_display_pakt, 7);                    // todo: delete after test
         //sendModbusReadCommand(current_device, MICRA_MODBUS_REG_DISPLAY);
         break;
       
@@ -118,7 +120,9 @@ void loop()
       
       // send packet (frequency)
       case 'z':
-        sendModbusReadCommand(current_device, PCE_REGISTER_DISPLAY1);
+        current_device->last_word = PCE_REGISTER_DISPLAY1;
+        Serial2.write(read_pce_display_packet, 18);
+        //sendModbusReadCommand(current_device, PCE_REGISTER_DISPLAY1);
         break;
       
       default:

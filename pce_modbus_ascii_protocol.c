@@ -46,6 +46,7 @@ typedef enum
 static uint8_t calculate_crc(unsigned char* frame, int8_t len);
 static uint8_t check_crc(uint8_t* buffer, uint8_t len);
 static uint8_t generate_header(Modbus485Device_t* device, uint8_t id, uint16_t reg, uint16_t len, uint8_t* out);
+static void update_struct(Modbus485Device_t* device, uint8_t* raw_data);
 
 // Public API
 
@@ -60,6 +61,53 @@ uint8_t pce_modbus_ascii_generate_read_packet(Modbus485Device_t* device, uint16_
     out[i++] = PCE_PROTOCOL_END;
     
     return i;   // return size of packet
+}
+
+uint8_t pce_modbus_ascii_parse_response(Modbus485Device_t* device, uint8_t* rx, uint8_t rx_len)
+{
+    // check min size to be 10: true continue, false wait until size is ok
+    if(rx_len < 10)
+        return MODBUS_ERR_BAD_LEN;
+
+    // check address
+    if(rx[PCE_POSITION_HEADER_FROM] != device->address + PCE_PROTOCOL_CONV)
+        return MODBUS_ERR_BAD_SLAVE_ADDRESS;
+
+    // check error frame
+    if(rx[PCE_POSITION_HEADER_ID] == PCE_FRAME_ERR)
+    {
+        // check crc
+        if(check_crc(rx, 8))
+        {
+            device->error = rx[PCE_POSITION_HEADER_REG];
+            return MODBUS_ERR_RESPONSE;
+        }
+        else
+            return MODBUS_ERR_BAD_CRC_ERROR;
+    }
+    
+    // check read frame
+    if(rx[PCE_POSITION_HEADER_ID] == PCE_FRAME_ANS)
+    {
+        if(rx_len >= 18)
+        {
+            // check crc
+            if(check_crc(rx, 18))
+            {
+                device->last_word = rx[PCE_POSITION_HEADER_REG] - PCE_PROTOCOL_CONV;
+                update_struct(device, &rx[8]);
+                return MODBUS_OK;
+            }
+            else
+                return MODBUS_ERR_BAD_CRC_READ;
+        }
+        else
+        {
+            return MODBUS_ERR_BAD_LEN;
+        }
+    }
+    
+    return MODBUS_ERR_OTHER;
 }
 
 // Frame examples
@@ -100,7 +148,7 @@ static uint8_t calculate_crc(unsigned char* frame, int8_t len)
 
     for(uint8_t i=0; i < len;i++)
     {
-    crc = crc ^ frame[i];
+        crc = crc ^ frame[i];
     }
 
     if(crc < 32) crc=~crc;
@@ -131,5 +179,13 @@ static uint8_t generate_header(Modbus485Device_t* device, uint8_t id, uint16_t r
     return i;   // return size of packet header
 }
 
-// send frame function
-// parse frame function
+static void update_struct(Modbus485Device_t* device, uint8_t* raw_data)
+{
+    switch(device->last_word)
+    {            
+        case PCE_REGISTER_DISPLAY1:
+            // ascii conversion to int16 to do
+            device->measure = raw_data[0] << 8 | raw_data[1];
+            break;
+    };
+}
