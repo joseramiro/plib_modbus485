@@ -47,6 +47,7 @@ static uint8_t calculate_crc(unsigned char* frame, int8_t len);
 static uint8_t check_crc(uint8_t* buffer, uint8_t len);
 static uint8_t generate_header(Modbus485Device_t* device, uint8_t id, uint16_t reg, uint16_t len, uint8_t* out);
 static void update_struct(Modbus485Device_t* device, uint8_t* raw_data);
+static uint16_t convert_ascii_to_int(uint8_t* raw_data);
 
 // Public API
 
@@ -184,8 +185,58 @@ static void update_struct(Modbus485Device_t* device, uint8_t* raw_data)
     switch(device->last_word)
     {            
         case PCE_REGISTER_DISPLAY1:
-            // ascii conversion to int16 to do
-            device->measure = raw_data[0] << 8 | raw_data[1];
+            device->measure = convert_ascii_to_int(raw_data);
             break;
     };
+}
+
+// convert ascii to int (exemple +1.12500 will be 11250)
+static uint16_t convert_ascii_to_int(uint8_t* raw_data)
+{
+    uint32_t value = 0;
+    uint8_t after_dot = 0, decimals = 0;
+    uint8_t *s = raw_data;
+
+    // Skip optional sign
+    if (*s == '+' || *s == '-')
+        s++;
+
+    while (*s)
+    {
+        if (*s >= '0' && *s <= '9')
+        {
+            value = value * 10 + (*s - '0');
+            if(after_dot)
+                decimals++;
+        }
+        // ignore decimal point
+        else if (*s == '.')
+        {
+            if(!after_dot)
+                after_dot = 1;
+            else
+                break;
+        }
+        else
+        {
+            break;
+        }
+        s++;
+    }
+
+    // We want exactly 4 decimal places (scale factor 10000)
+    // Get the 4 decimals
+    while (decimals < 4)
+    {
+        value *= 10;
+        decimals++;
+    }
+    // Truncate the extra decimals
+    while (decimals > 4)
+    {
+        value /= 10;
+        decimals--;
+    }
+
+    return value;
 }

@@ -13,6 +13,7 @@ uint8_t g_current_slave_id = 0;
 
 // only for debugging
 uint8_t g_micra_conf[] = {0, 2};
+uint8_t g_delay_conf[] = {2, 2};
 uint32_t lastTime = 0;
 
 // gpio setters
@@ -26,7 +27,7 @@ Modbus485Device_t deviceList[] =
       .last_word = 0,
   },
   {
-      .address = 2,
+      .address = 12,
       .last_word = 0,
   },
   {
@@ -43,6 +44,7 @@ uint8_t read_input_packet[] = {0x01, 0x03, 0x02, 0x01, 0x00, 0xb9, 0xd4};
 uint8_t read_display_pakt[] = {0x01, 0x03, 0x02, 0x09, 0x60, 0xbe, 0x3c};
 
 uint8_t read_pce_display_packet[] = {2, 37, 32, 60, 32, 32, 32, 40,   43, 48, 55, 54, 53, 46, 52, 51,   53, 3};
+uint8_t read_pce_display_packet2[] = {2, 37, 32, 60, 32, 32, 32, 40,   43, 49, 46, 49, 50, 53, 48, 48,   49, 3};
 
 void setup()
 {
@@ -52,8 +54,8 @@ void setup()
 
   // Init serial
   Serial.begin(115200);
-  Serial1.begin(BAUD_RATE, SERIAL_8E1);
-  Serial2.begin(BAUD_RATE, SERIAL_8E1);
+  Serial1.begin(BAUD_RATE, SERIAL_8N1);
+  Serial2.begin(BAUD_RATE, SERIAL_8N1);
 
   // Init devices
   deviceList[0].parser.Write_Words = micra_modbus485_generate_write_packet;
@@ -103,26 +105,34 @@ void loop()
       
       // send packet (micra)
       case 'a':
-        current_device->last_word = MICRA_MODBUS_REG_INPUT_RANGE; // todo: delete after test
-        Serial2.write(read_input_packet, 7);                      // todo: delete after test
-        //sendModbusReadCommand(current_device, MICRA_MODBUS_REG_INPUT_RANGE);
+        //current_device->last_word = MICRA_MODBUS_REG_INPUT_RANGE; // todo: delete after test
+        //Serial2.write(read_input_packet, 7);                      // todo: delete after test
+        sendModbusReadCommand(current_device, MICRA_MODBUS_REG_INPUT_RANGE);
         break;
       
       case 'b':
-        current_device->last_word = MICRA_MODBUS_REG_DISPLAY;   // todo: delete after test
-        Serial2.write(read_display_pakt, 7);                    // todo: delete after test
-        //sendModbusReadCommand(current_device, MICRA_MODBUS_REG_DISPLAY);
+        //current_device->last_word = MICRA_MODBUS_REG_DISPLAY;   // todo: delete after test
+        //Serial2.write(read_display_pakt, 7);                    // todo: delete after test
+        sendModbusReadCommand(current_device, MICRA_MODBUS_REG_DISPLAY);
         break;
       
       case 'c':
         sendModbusWriteCommand(current_device, MICRA_MODBUS_REG_BRIGHTNESS_ROUND, g_micra_conf);
         break;
       
+      case 'd':
+        sendModbusWriteCommand(current_device, MICRA_MODBUS_REG_RS_PROTOCOL_DELAY, g_delay_conf);
+        break;
+      
+      case 'e':     
+        sendModbusReadCommand(current_device, MICRA_MODBUS_REG_RS_PROTOCOL_DELAY);
+        break;
+      
       // send packet (frequency)
       case 'z':
-        current_device->last_word = PCE_REGISTER_DISPLAY1;
-        Serial2.write(read_pce_display_packet, 18);
-        //sendModbusReadCommand(current_device, PCE_REGISTER_DISPLAY1);
+        //current_device->last_word = PCE_REGISTER_DISPLAY1;
+        //Serial2.write(read_pce_display_packet2, 18);
+        sendModbusReadCommand(current_device, PCE_REGISTER_DISPLAY1);
         break;
       
       default:
@@ -135,8 +145,6 @@ void loop()
   {
     rx_buffer[rx_len++] = Serial1.read();
 
-    printBuffer(rx_buffer, 20, "RX");
-    
     if(!current_device->parser.Parse_Response)
       return;
     
@@ -144,73 +152,62 @@ void loop()
 
     if(res == MODBUS_ERR_BAD_LEN)
       return;
+    
+    printBuffer(rx_buffer, rx_len, "RX");
 
     switch (res)
     {      
       case MODBUS_ERR_BAD_SLAVE_ADDRESS:
         Serial.println("Bad slave address");
-        clearSerialPort();
         break;
       
       case MODBUS_ERR_RESPONSE:
-        Serial.print("Error received: ");
-        Serial.print(current_device->error);
-        Serial.println();
-        clearSerialPort();
+        Serial.println("Error received: " + String(current_device->error));
         break;
       
       case MODBUS_ERR_BAD_CRC_ERROR:
         Serial.println("Bad CRC Error");
-        clearSerialPort();
         break;
       
       case MODBUS_ERR_BAD_CRC_WRITE:
         Serial.println("Bad CRC Write");
-        clearSerialPort();
         break;
       
       case MODBUS_ERR_BAD_CRC_READ:
         Serial.println("Bad CRC Read");
-        clearSerialPort();
         break;
       
       case MODBUS_ERR_OTHER:
         Serial.println("Other error");
-        clearSerialPort();
         break;
       
       case MODBUS_OK:
-        Serial.print("Measure: ");
-        Serial.print(current_device->measure);
-        Serial.println();
-        clearSerialPort();
+        Serial.println("Measure: " + String(current_device->measure));
         break;
     }
+    
+    clearSerialPort();
   }
-
 }
 
 void printBuffer(uint8_t* buffer, uint8_t len, char* name)
 {
-  Serial.print("[len: ");
-  Serial.print(len);
-  Serial.print("]\t[");
-  Serial.print(name);
-  Serial.print(": ");
+  Serial.print("[len: " + String(len) + "]\t[" + String(name) + ": ");
+
   for(uint8_t i = 0; i < len; i++)
   {
-    Serial.print(buffer[i]);
-    Serial.print(" ");
+    Serial.print(buffer[i] + String(" "));
   }
   Serial.println("]");
 }
 
 void sendModbusCommand(uint8_t* data, uint8_t len)
 {
-  Serial2.flush();
-  setTX();
-  Serial2.write(tx_buffer, len);
-  setRX();
+  setTX();                          // tx mode
+  Serial1.write(tx_buffer, len);    // send data
+  Serial1.flush();                  // wait tranmission is done
+  setRX();                          // rx mode
+  clearSerialPort();                // clear rx buffer
   printBuffer(tx_buffer, len, "TX");
 }
 
@@ -224,7 +221,6 @@ void sendModbusReadCommand(Modbus485Device_t* device, uint8_t word)
     // Transmit packet
     sendModbusCommand(tx_buffer, bytes_to_write);
   }
-  
 }
 
 void sendModbusWriteCommand(Modbus485Device_t* device, uint8_t word, uint8_t* data)
@@ -241,6 +237,9 @@ void sendModbusWriteCommand(Modbus485Device_t* device, uint8_t word, uint8_t* da
 
 void clearSerialPort()
 {
-  Serial1.flush();
+  while (Serial1.available() > 0)
+  {
+    Serial1.read();
+  }
   rx_len = 0;
 }
