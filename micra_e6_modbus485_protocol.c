@@ -1,3 +1,4 @@
+#include <string.h>
 #include "micra_e6_modbus485_protocol.h"
 
 typedef enum

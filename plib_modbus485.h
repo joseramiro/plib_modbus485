@@ -43,6 +43,7 @@ typedef enum
     MODBUS_ERR_BAD_CRC_WRITE,
     MODBUS_ERR_BAD_CRC_READ,
     MODBUS_ERR_OTHER,
+    MODBUS_WAIT_RESP,
     MODBUS_OK
 }ModbusParseStatus_t;
 
