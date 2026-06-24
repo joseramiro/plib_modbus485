@@ -23,6 +23,7 @@ typedef struct
 
 typedef struct Modbus485Device_t
 {
+    uint8_t name;
     uint8_t address;
     uint16_t last_word;
     uint8_t last_status;
