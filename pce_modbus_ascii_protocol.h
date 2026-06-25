@@ -23,8 +23,8 @@ typedef enum
 extern "C" {
 #endif
 
-uint8_t pce_modbus_ascii_generate_read_packet(Modbus485Device_t* device, uint16_t reg, uint16_t len, uint8_t* out);
-uint8_t pce_modbus_ascii_parse_response(Modbus485Device_t* device, uint8_t* rx, uint8_t rx_len);
+uint8_t pce_modbus_ascii_generate_read_packet(Modbus485Comm_t* comm, uint16_t reg, uint16_t len, uint8_t* out);
+uint8_t pce_modbus_ascii_parse_response(Modbus485Comm_t* comm, uint8_t* rx, uint8_t rx_len);
 
 #ifdef __cplusplus
 }

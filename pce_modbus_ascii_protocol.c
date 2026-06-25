@@ -45,16 +45,16 @@ typedef enum
 
 static uint8_t calculate_crc(unsigned char* frame, int8_t len);
 static uint8_t check_crc(uint8_t* buffer, uint8_t len);
-static uint8_t generate_header(Modbus485Device_t* device, uint8_t id, uint16_t reg, uint16_t len, uint8_t* out);
-static void update_struct(Modbus485Device_t* device, uint8_t* raw_data);
+static uint8_t generate_header(Modbus485Comm_t* comm, uint8_t id, uint16_t reg, uint16_t len, uint8_t* out);
+static void update_struct(Modbus485Comm_t* comm, uint8_t* raw_data);
 static uint16_t convert_ascii_to_int(uint8_t* raw_data);
 
 // Public API
 
-uint8_t pce_modbus_ascii_generate_read_packet(Modbus485Device_t* device, uint16_t reg, uint16_t len, uint8_t* out)
+uint8_t pce_modbus_ascii_generate_read_packet(Modbus485Comm_t* comm, uint16_t reg, uint16_t len, uint8_t* out)
 {
     // packet header
-    uint8_t i = generate_header(device, PCE_FRAME_READ, reg, len, out);
+    uint8_t i = generate_header(comm, PCE_FRAME_READ, reg, len, out);
     
     // crc
     uint8_t crc = calculate_crc(out, i);
@@ -64,14 +64,14 @@ uint8_t pce_modbus_ascii_generate_read_packet(Modbus485Device_t* device, uint16_
     return i;   // return size of packet
 }
 
-uint8_t pce_modbus_ascii_parse_response(Modbus485Device_t* device, uint8_t* rx, uint8_t rx_len)
+uint8_t pce_modbus_ascii_parse_response(Modbus485Comm_t* comm, uint8_t* rx, uint8_t rx_len)
 {
     // check min size to be 10: true continue, false wait until size is ok
     if(rx_len < 10)
         return MODBUS_ERR_BAD_LEN;
 
     // check address
-    if(rx[PCE_POSITION_HEADER_FROM] != device->address + PCE_PROTOCOL_CONV)
+    if(rx[PCE_POSITION_HEADER_FROM] != comm->address + PCE_PROTOCOL_CONV)
         return MODBUS_ERR_BAD_SLAVE_ADDRESS;
 
     // check error frame
@@ -80,7 +80,7 @@ uint8_t pce_modbus_ascii_parse_response(Modbus485Device_t* device, uint8_t* rx, 
         // check crc
         if(check_crc(rx, 8))
         {
-            device->error = rx[PCE_POSITION_HEADER_REG];
+            comm->error = rx[PCE_POSITION_HEADER_REG];
             return MODBUS_ERR_RESPONSE;
         }
         else
@@ -95,8 +95,8 @@ uint8_t pce_modbus_ascii_parse_response(Modbus485Device_t* device, uint8_t* rx, 
             // check crc
             if(check_crc(rx, 18))
             {
-                device->last_word = rx[PCE_POSITION_HEADER_REG] - PCE_PROTOCOL_CONV;
-                update_struct(device, &rx[8]);
+                comm->last_word = rx[PCE_POSITION_HEADER_REG] - PCE_PROTOCOL_CONV;
+                update_struct(comm, &rx[8]);
                 return MODBUS_OK;
             }
             else
@@ -165,7 +165,7 @@ static uint8_t check_crc(uint8_t* buffer, uint8_t len)
     return 0;
 }
 
-static uint8_t generate_header(Modbus485Device_t* device, uint8_t id, uint16_t reg, uint16_t len, uint8_t* out)
+static uint8_t generate_header(Modbus485Comm_t* comm, uint8_t id, uint16_t reg, uint16_t len, uint8_t* out)
 {
     uint8_t i = 0;
     len = 0;    // set artifially to 0 because no needed
@@ -173,19 +173,19 @@ static uint8_t generate_header(Modbus485Device_t* device, uint8_t id, uint16_t r
     out[i++] = id;                                  // Id
     out[i++] = PCE_PROTOCOL_RSV;                    // Rsv
     out[i++] = PCE_PROTOCOL_CONV + 0;               // From master (0: real value + 32)
-    out[i++] = PCE_PROTOCOL_CONV + device->address; // To slave (address: real value + 32)
+    out[i++] = PCE_PROTOCOL_CONV + comm->address; // To slave (address: real value + 32)
     out[i++] = PCE_PROTOCOL_CONV + reg;             // Register (word: real value + 32)
     out[i++] = PCE_PROTOCOL_RSV;                    // Rsv
     out[i++] = PCE_PROTOCOL_CONV + len;             // Long len (real value + 32)
     return i;   // return size of packet header
 }
 
-static void update_struct(Modbus485Device_t* device, uint8_t* raw_data)
+static void update_struct(Modbus485Comm_t* comm, uint8_t* raw_data)
 {
-    switch(device->last_word)
+    switch(comm->last_word)
     {            
         case PCE_REGISTER_DISPLAY1:
-            device->measure = convert_ascii_to_int(raw_data);
+            comm->measure = convert_ascii_to_int(raw_data);
             break;
     };
 }

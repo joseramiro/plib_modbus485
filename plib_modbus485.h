@@ -11,28 +11,26 @@ typedef enum
     MODBUS485_MODE_ERROR = 0x80
 }Modbus485Modes_t;
 
-struct Modbus485Device_t;
+struct Modbus485Comm_t;
 
 typedef struct
 {
-    uint8_t(*Read_Words)(struct Modbus485Device_t*, uint16_t, uint16_t, uint8_t*);
-    uint8_t(*Write_Words)(struct Modbus485Device_t*, uint16_t, uint16_t, uint8_t*, uint8_t*);
-    uint8_t(*Parse_Response)(struct Modbus485Device_t*, uint8_t*, uint8_t);
+    uint8_t(*Read_Words)(struct Modbus485Comm_t*, uint16_t, uint16_t, uint8_t*);
+    uint8_t(*Write_Words)(struct Modbus485Comm_t*, uint16_t, uint16_t, uint8_t*, uint8_t*);
+    uint8_t(*Parse_Response)(struct Modbus485Comm_t*, uint8_t*, uint8_t);
 }Modbus485Parser_t;
 
 
-typedef struct Modbus485Device_t
+typedef struct Modbus485Comm_t
 {
-    uint8_t name;
     uint8_t address;
     uint16_t last_word;
     uint8_t last_status;
     uint8_t error;
+    uint8_t busy;               // port is busy (1), or free (0)
     Modbus485Parser_t parser;
     int16_t measure;
-    uint8_t input;
-    uint8_t range;
-}Modbus485Device_t;
+}Modbus485Comm_t;
 
 typedef enum
 {

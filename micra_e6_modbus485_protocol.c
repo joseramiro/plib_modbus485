@@ -10,14 +10,14 @@ typedef enum
 // Static functions
 static uint16_t calculate_crc16(uint8_t* buffer, uint8_t len);
 static uint8_t check_crc16(uint8_t* buffer, uint8_t len);
-static uint8_t generate_header(Modbus485Device_t* device, uint8_t mode, uint16_t first_word, uint16_t nb_words, uint8_t* out);
-static void update_struct(Modbus485Device_t* device, uint8_t* raw_data);
+static uint8_t generate_header(Modbus485Comm_t* comm, uint8_t mode, uint16_t first_word, uint16_t nb_words, uint8_t* out);
+static void update_struct(Modbus485Comm_t* comm, uint8_t* raw_data);
 
 // Public API
-uint8_t micra_modbus485_generate_read_packet(Modbus485Device_t* device, uint16_t first_word, uint16_t nb_words, uint8_t* out)
+uint8_t micra_modbus485_generate_read_packet(Modbus485Comm_t* comm, uint16_t first_word, uint16_t nb_words, uint8_t* out)
 {
     // packet header
-    uint8_t i = generate_header(device, MODBUS485_MODE_READ_WORD, first_word, nb_words, out);
+    uint8_t i = generate_header(comm, MODBUS485_MODE_READ_WORD, first_word, nb_words, out);
     
     // crc
     uint16_t crc = calculate_crc16(out, i);
@@ -27,10 +27,10 @@ uint8_t micra_modbus485_generate_read_packet(Modbus485Device_t* device, uint16_t
     return i;   // return size of packet
 }
 
-uint8_t micra_modbus485_generate_write_packet(Modbus485Device_t* device, uint16_t first_word, uint16_t nb_words, uint8_t* data, uint8_t* out)
+uint8_t micra_modbus485_generate_write_packet(Modbus485Comm_t* comm, uint16_t first_word, uint16_t nb_words, uint8_t* data, uint8_t* out)
 {
     // packet header
-    uint8_t i = generate_header(device, MODBUS485_MODE_WRITE_WORD, first_word, nb_words, out);
+    uint8_t i = generate_header(comm, MODBUS485_MODE_WRITE_WORD, first_word, nb_words, out);
     
     // word size in bytes
     uint8_t words_size = nb_words * 2;
@@ -46,14 +46,14 @@ uint8_t micra_modbus485_generate_write_packet(Modbus485Device_t* device, uint16_
     return i;   // return packet size
 }
 
-uint8_t micra_modbus485_parse_response(Modbus485Device_t* device, uint8_t* rx, uint8_t rx_len)
+uint8_t micra_modbus485_parse_response(Modbus485Comm_t* comm, uint8_t* rx, uint8_t rx_len)
 {
     // check min size to be 5: true continue, false wait until size is ok
     if(rx_len < 5)
         return MODBUS_ERR_BAD_LEN;
         
     // check address
-    if(rx[MICRA_E6_MODBUS485_POSITION_ADDRESS] != device->address)
+    if(rx[MICRA_E6_MODBUS485_POSITION_ADDRESS] != comm->address)
         return MODBUS_ERR_BAD_SLAVE_ADDRESS;
         
     // check mode is error (read word + 0x80 or write word + 0x08):
@@ -63,7 +63,7 @@ uint8_t micra_modbus485_parse_response(Modbus485Device_t* device, uint8_t* rx, u
         // check crc
         if(check_crc16(rx, 5))
         {
-            device->error = rx[2];
+            comm->error = rx[2];
             return MODBUS_ERR_RESPONSE;
         }
         else
@@ -92,7 +92,7 @@ uint8_t micra_modbus485_parse_response(Modbus485Device_t* device, uint8_t* rx, u
         // check crc
         if(check_crc16(rx, 5 + rx[2]))
         {
-            update_struct(device, &rx[3]);
+            update_struct(comm, &rx[3]);
             return MODBUS_OK;
         }
         else
@@ -140,10 +140,10 @@ static uint8_t check_crc16(uint8_t* buffer, uint8_t len)
     return 0;
 }
 
-static uint8_t generate_header(Modbus485Device_t* device, uint8_t mode, uint16_t first_word, uint16_t nb_words, uint8_t* out)
+static uint8_t generate_header(Modbus485Comm_t* comm, uint8_t mode, uint16_t first_word, uint16_t nb_words, uint8_t* out)
 {
     uint8_t i = 0;
-    out[i++] = device->address;
+    out[i++] = comm->address;
     out[i++] = mode;
     out[i++] = first_word >> 8;
     out[i++] = first_word;
@@ -152,17 +152,19 @@ static uint8_t generate_header(Modbus485Device_t* device, uint8_t mode, uint16_t
     return i;   // return size of packet header
 }
 
-static void update_struct(Modbus485Device_t* device, uint8_t* raw_data)
+static void update_struct(Modbus485Comm_t* comm, uint8_t* raw_data)
 {
-    switch(device->last_word)
+    switch(comm->last_word)
     {
+        /*
         case MICRA_MODBUS_REG_INPUT_RANGE:
             device->input = raw_data[0];
             device->range = raw_data[1];
             break;
+        */
             
         case MICRA_MODBUS_REG_DISPLAY:
-            device->measure = raw_data[0] << 8 | raw_data[1];
+            comm->measure = raw_data[0] << 8 | raw_data[1];
             break;
     };
 }

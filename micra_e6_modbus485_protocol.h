@@ -86,15 +86,41 @@ typedef enum
     MICRA_MODBUS_REG_SOFTWARE_VERSION
 }MicraE6ModbusReg_t;
 
+typedef enum
+{
+    MICRA_INPUT_DC_VOLT,
+    MICRA_INPUT_AC_VOLT,
+    MICRA_INPUT_DC_AMP,
+    MICRA_INPUT_AC_AMP
+}MicraE6Input_t;
+
+typedef enum
+{
+    MICRA_RANGE_600V,
+    MICRA_RANGE_200V,
+    MICRA_RANGE_20V,
+    MICRA_RANGE_2V
+}MicraE6VoltRange_t;
+
+typedef enum
+{
+    MICRA_RANGE_5A,
+    MICRA_RANGE_1A,
+    MICRA_RANGE_200mA,
+    MICRA_RANGE_SHUNT_100mV,
+    MICRA_RANGE_SHUNT_60mV,
+    MICRA_RANGE_SHUNT_50mV
+}MicraE6AmpRange_t;
+
 // Public API
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-uint8_t micra_modbus485_generate_read_packet(Modbus485Device_t* device, uint16_t first_word, uint16_t nb_words, uint8_t* out);
-uint8_t micra_modbus485_generate_write_packet(Modbus485Device_t* device, uint16_t first_word,uint16_t nb_words, uint8_t* data, uint8_t* out);
-uint8_t micra_modbus485_parse_response(Modbus485Device_t* device, uint8_t* rx, uint8_t rx_len);
+uint8_t micra_modbus485_generate_read_packet(Modbus485Comm_t* comm, uint16_t first_word, uint16_t nb_words, uint8_t* out);
+uint8_t micra_modbus485_generate_write_packet(Modbus485Comm_t* comm, uint16_t first_word,uint16_t nb_words, uint8_t* data, uint8_t* out);
+uint8_t micra_modbus485_parse_response(Modbus485Comm_t* comm, uint8_t* rx, uint8_t rx_len);
 
 #ifdef __cplusplus
 }
