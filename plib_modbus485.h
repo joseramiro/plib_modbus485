@@ -25,6 +25,7 @@ typedef struct Modbus485Comm_t
 {
     uint8_t address;
     uint16_t last_word;
+    uint8_t response_received;
     uint8_t last_status;
     uint8_t error;
     uint8_t busy;               // port is busy (1), or free (0)
@@ -41,7 +42,6 @@ typedef enum
     MODBUS_ERR_BAD_CRC_WRITE,
     MODBUS_ERR_BAD_CRC_READ,
     MODBUS_ERR_OTHER,
-    MODBUS_WAIT_RESP,
     MODBUS_OK
 }ModbusParseStatus_t;
 

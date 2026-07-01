@@ -78,6 +78,7 @@ uint8_t micra_modbus485_parse_response(Modbus485Comm_t* comm, uint8_t* rx, uint8
         // check crc
         if(check_crc16(rx, 8))
         {
+            comm->response_received = 1;
             return MODBUS_OK;
         }
         else
@@ -93,6 +94,7 @@ uint8_t micra_modbus485_parse_response(Modbus485Comm_t* comm, uint8_t* rx, uint8
         if(check_crc16(rx, 5 + rx[2]))
         {
             update_struct(comm, &rx[3]);
+            comm->response_received = 1;
             return MODBUS_OK;
         }
         else

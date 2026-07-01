@@ -71,8 +71,8 @@ uint8_t pce_modbus_ascii_parse_response(Modbus485Comm_t* comm, uint8_t* rx, uint
         return MODBUS_ERR_BAD_LEN;
 
     // check address
-    if(rx[PCE_POSITION_HEADER_FROM] != comm->address + PCE_PROTOCOL_CONV)
-        return MODBUS_ERR_BAD_SLAVE_ADDRESS;
+    //if(rx[PCE_POSITION_HEADER_FROM] != comm->address + PCE_PROTOCOL_CONV)
+    //    return MODBUS_ERR_BAD_SLAVE_ADDRESS;
 
     // check error frame
     if(rx[PCE_POSITION_HEADER_ID] == PCE_FRAME_ERR)
@@ -97,6 +97,7 @@ uint8_t pce_modbus_ascii_parse_response(Modbus485Comm_t* comm, uint8_t* rx, uint
             {
                 comm->last_word = rx[PCE_POSITION_HEADER_REG] - PCE_PROTOCOL_CONV;
                 update_struct(comm, &rx[8]);
+                comm->response_received = 1;
                 return MODBUS_OK;
             }
             else
