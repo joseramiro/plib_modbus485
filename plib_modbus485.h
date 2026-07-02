@@ -28,7 +28,6 @@ typedef struct Modbus485Comm_t
     uint8_t response_received;
     uint8_t last_status;
     uint8_t error;
-    uint8_t busy;               // port is busy (1), or free (0)
     Modbus485Parser_t parser;
     int16_t measure;
 }Modbus485Comm_t;
