@@ -80,7 +80,7 @@ uint8_t pce_modbus_ascii_parse_response(Modbus485Comm_t* comm, uint8_t* rx, uint
         // check crc
         if(check_crc(rx, 8))
         {
-            comm->error = rx[PCE_POSITION_HEADER_REG];
+            //comm->error = rx[PCE_POSITION_HEADER_REG];
             return MODBUS_ERR_RESPONSE;
         }
         else

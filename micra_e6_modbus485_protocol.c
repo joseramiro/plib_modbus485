@@ -63,7 +63,7 @@ uint8_t micra_modbus485_parse_response(Modbus485Comm_t* comm, uint8_t* rx, uint8
         // check crc
         if(check_crc16(rx, 5))
         {
-            comm->error = rx[2];
+            //comm->error = rx[2];
             return MODBUS_ERR_RESPONSE;
         }
         else
