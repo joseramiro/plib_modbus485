@@ -25,6 +25,7 @@ typedef struct Modbus485Comm_t
 {
     uint8_t address;
     uint16_t last_word;
+    uint8_t is_busy;
     uint8_t response_received;
     uint8_t last_status;
     uint16_t timeout;
